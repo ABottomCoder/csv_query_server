@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func init() {
+	InitFile()
+}
+
 func TestIsValidQuery(t *testing.T) {
 	querys := []string{
 		`C1==test1`,
@@ -28,13 +32,15 @@ func TestIsValidQuery(t *testing.T) {
 func TestIsValidModify(t *testing.T) {
 	modifys := []string{
 		`INSERT a1,a2,a3`,
-		`INSERT a1,a2`,
+		`INSERT a1,a2,`,
 		`INSERT a1`,
 		`DELETE a1`,
 		`DELETE a1,a2`,
 		`DELETE a1,a2,a3`,
 		`UPDATE a1,C2,b2`,
+		`UPDATE a1,C4,b2`,
 		`UPDATE a1,a2,C3,d3`,
+		`UPDATE a1,a2,C5,d3`,
 	}
 
 	for _, modify := range modifys {

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -39,10 +38,21 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 
 func isValidQuery(query string) bool {
 	// 定义正则
+	pattern := ""
+	for i, n := range headers {
+		if i > 0 {
+			pattern += "|"
+		}
+		pattern += regexp.QuoteMeta(n)
+	}
+
+	// fmt.Printf("pattern: %s\n", pattern)
 	// validQueryRegex := `^((C1|C2|C3)\s*(==|!=|\$=|&=)\s*.*\s*(and|or)?\s*)+$`
 	// validQueryRegex := `^(([A-Za-z0-9]+)\s*(==|!=|\$=|&=)\s*.*\s*(and|or)?\s*)+$`
 	// validQueryRegex := `^(([A-Za-z0-9]+)\s*(==|!=|\$=|&=)\s*(?=\S).*(and|or)?\s*)+$`
-	validQueryRegex := `^(([A-Za-z0-9]+)\s*(==|!=|\$=|&=)\s*\S+\s*(and|or)?\s*)+$`
+	// validQueryRegex := `^(([A-Za-z0-9]+)\s*(==|!=|\$=|&=)\s*\S+\s*(and|or)?\s*)+$`
+	// validQueryRegex := `^((C1|C2|C3)\s*(==|!=|\$=|&=)\s*\S+\s*(and|or)?\s*)+$`
+	validQueryRegex := fmt.Sprintf("^((%s)\\s*(==|!=|\\$=|&=)\\s*\\S+\\s*(and|or)?\\s*)+$", pattern)
 
 	// 匹配查询语句
 	match, _ := regexp.MatchString(validQueryRegex, query)
@@ -58,10 +68,4 @@ func contains(slice []string, element string) bool {
 		}
 	}
 	return false
-}
-
-func jsonResponse(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(data)
 }

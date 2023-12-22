@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	dataMutex = &sync.RWMutex{}
-	dataFile  *os.File
-	data      [][]string
+	dataMutex    = &sync.RWMutex{}
+	dataFile     *os.File
+	data         [][]string
+	headers      []string
+	header2Index = make(map[string]int)
 )
 
 // InitFile create data.csv if not exist
@@ -21,6 +23,7 @@ func InitFile() {
 	_, err := os.Stat("data.csv")
 	if err == nil {
 		fmt.Println("file already exist")
+
 	} else if os.IsNotExist(err) {
 		// file not exist, create
 		file, err := os.Create("data.csv")
@@ -33,8 +36,8 @@ func InitFile() {
 		writer := csv.NewWriter(file)
 
 		// write header
-		header := []string{"C1", "C2", "C3"}
-		err = writer.Write(header)
+		defaultHeaders := []string{"C1", "C2", "C3"}
+		err = writer.Write(defaultHeaders)
 		if err != nil {
 			fmt.Println("write header fail:", err)
 			return
@@ -59,6 +62,15 @@ func InitFile() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	headers = data[0]
+	for i, header := range headers {
+		header2Index[header] = i
+	}
+
+	fmt.Printf("headers: %v\n", headers)
+
+	fmt.Printf("data: %v\n", data)
 
 	readCsv()
 }
@@ -91,79 +103,88 @@ func getValue(p string) string {
 	return p[index+1:]
 }
 
-func matchPredicate(row []string, predicate string) bool {
+func matchPredicate(row []string, colIndex int, query [2]string) bool {
 	// 解析谓词
-	operator := ""
-	term := ""
-	if strings.Contains(predicate, "==") {
-		operator = "=="
-		// term = strings.Trim(predicate, "C1 C2 C3 == \"")
-		term = getValue(predicate)
-		fmt.Printf(">>>> test, in ==, predicate=: %s, term: %s\n", predicate, term)
-	} else if strings.Contains(predicate, "!=") {
-		operator = "!="
-		term = getValue(predicate)
-	} else if strings.Contains(predicate, "$=") {
-		operator = "$="
-		term = getValue(predicate)
-	} else if strings.Contains(predicate, "&=") {
-		operator = "&="
-		term = getValue(predicate)
-	}
+	operator := query[0]
+	term := query[1]
+	//if strings.Contains(predicate, "==") {
+	//	operator = "=="
+	//	// term = strings.Trim(predicate, "C1 C2 C3 == \"")
+	//	term = getValue(predicate)
+	//	fmt.Printf(">>>> test, in ==, predicate=: %s, term: %s\n", predicate, term)
+	//} else if strings.Contains(predicate, "!=") {
+	//	operator = "!="
+	//	term = getValue(predicate)
+	//} else if strings.Contains(predicate, "$=") {
+	//	operator = "$="
+	//	term = getValue(predicate)
+	//} else if strings.Contains(predicate, "&=") {
+	//	operator = "&="
+	//	term = getValue(predicate)
+	//}
 
 	// 检查谓词是否匹配
 	switch operator {
 	case "==":
-		return rowMatches(row, term)
+		return rowMatches(row, colIndex, term)
 	case "!=":
-		return !rowMatches(row, term)
+		return !rowMatches(row, colIndex, term)
 	case "$=":
-		return rowMatchesIgnoreCase(row, term)
+		return rowMatchesIgnoreCase(row, colIndex, term)
 	case "&=":
-		return rowContains(row, term)
+		return rowContains(row, colIndex, term)
 	default:
 		return false
 	}
 }
 
-func rowMatches(row []string, term string) bool {
-	for _, cell := range row {
-		if cell == term {
-			return true
-		}
+func rowMatches(row []string, colIndex int, term string) bool {
+	return row[colIndex] == term
+}
+
+func rowMatchesIgnoreCase(row []string, colIndex int, term string) bool {
+	if strings.EqualFold(row[colIndex], term) {
+		return true
 	}
+
 	return false
 }
 
-func rowMatchesIgnoreCase(row []string, term string) bool {
-	for _, cell := range row {
-		if strings.EqualFold(cell, term) {
-			return true
-		}
+func rowContains(row []string, colIndex int, term string) bool {
+	if strings.Contains(row[colIndex], term) {
+		return true
 	}
+
 	return false
 }
 
-func rowContains(row []string, term string) bool {
-	for _, cell := range row {
-		if strings.Contains(cell, term) {
-			return true
+func getUpdateData(values []string) (idx int, newVal string) {
+	idx = -1
+	for i, header := range headers {
+		if header == values[len(values)-2] {
+			idx = i
+			break
 		}
 	}
-	return false
+
+	newVal = values[len(values)-1]
+
+	return
 }
 
 func executeUpdate(values []string) error {
-	//if len(values) != 6 {
-	//	return fmt.Errorf("invalid UPDATE command")
-	//}
+	idx, newVal := getUpdateData(values)
+	if idx == -1 {
+		return fmt.Errorf("invalid UPDATE command")
+	}
 
 	fmt.Printf("update values: %v\n", values)
+
 	var newData [][]string
 
 	for _, row := range data {
 		if rowMatchesUpdate(row, values) {
-			row = updateRow(row, values)
+			row = updateRow(row, idx, newVal)
 		}
 		newData = append(newData, row)
 	}
@@ -188,12 +209,8 @@ func rowMatchesUpdate(row []string, values []string) bool {
 	return true
 }
 
-func updateRow(row []string, values []string) []string {
-	for i := 3; i < 6; i += 2 {
-		if values[i] != "*" {
-			row[i/2-1] = values[i]
-		}
-	}
+func updateRow(row []string, idx int, newVal string) []string {
+	row[idx] = newVal
 	return row
 }
 
@@ -227,9 +244,9 @@ func executeModify(job string) error {
 	}
 }
 
-func matchPredicates(row []string, predicates []string) bool {
-	for _, predicate := range predicates {
-		if !matchPredicate(row, predicate) {
+func matchPredicates(row []string, queryData map[int][2]string) bool {
+	for conIndex, query := range queryData {
+		if !matchPredicate(row, conIndex, query) {
 			return false
 		}
 	}
@@ -237,11 +254,26 @@ func matchPredicates(row []string, predicates []string) bool {
 }
 
 func executeInsert(values []string) error {
-	if len(values) != 3 {
+	if len(values) != len(headers) {
 		fmt.Printf("values: %v, len: %d\n", values, len(values))
 		return fmt.Errorf("invalid INSERT command")
 	}
 
+	// 先查询数据是否已存在
+	queryData := make(map[int][2]string, len(headers))
+	for idx, _ := range headers {
+		queryData[idx] = [2]string{"==", values[idx]}
+	}
+	var result [][]string
+	for _, row := range data {
+		if matchPredicates(row, queryData) {
+			result = append(result, row)
+		}
+	}
+
+	if len(result) != 0 {
+		return fmt.Errorf("data already exist")
+	}
 	data = append(data, values)
 
 	// 更新数据文件
@@ -347,13 +379,32 @@ func executeQuery(query string) [][]string {
 	predicates := strings.Split(query, " and ")
 
 	fmt.Printf("predicates: %v\n", predicates)
+	queryData := getQueryData(predicates)
+	fmt.Printf("queryData: %v\n", queryData)
+
 	// 执行查询操作
 	var result [][]string
 	for _, row := range data {
-		if matchPredicates(row, predicates) {
+		if matchPredicates(row, queryData) {
 			result = append(result, row)
 		}
 	}
 
 	return result
+}
+
+// map[int][2]string ==> colindex->[operator, value]
+func getQueryData(ps []string) (queryData map[int][2]string) {
+	queryData = make(map[int][2]string, len(ps))
+	for _, p := range ps {
+		index := strings.LastIndex(p, "=")
+
+		colName := p[:index-1]
+		colValue := p[index+1:]
+		if colIndex, ok := header2Index[colName]; ok {
+			queryData[colIndex] = [2]string{p[index-1 : index+1], colValue}
+		}
+	}
+
+	return
 }
