@@ -1,15 +1,16 @@
-package server
+package handler
 
 import (
 	"fmt"
 	"testing"
+
+	"zh.com/ms_coding2/internal/repository"
 )
 
-func init() {
-	InitFile()
-}
+var filePath = "../../pkg/csv/data.csv"
 
 func TestIsValidQuery(t *testing.T) {
+	repository.InitFile(filePath)
 	querys := []string{
 		`C1==test1`,
 		`C1=="test1"`,
@@ -30,6 +31,7 @@ func TestIsValidQuery(t *testing.T) {
 }
 
 func TestIsValidModify(t *testing.T) {
+	repository.InitFile(filePath)
 	modifys := []string{
 		`INSERT a1,a2,a3`,
 		`INSERT a1,a2,`,

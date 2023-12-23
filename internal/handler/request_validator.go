@@ -1,45 +1,59 @@
-package server
+package handler
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
+	"strings"
+
+	"zh.com/ms_coding2/internal/repository"
 )
 
-func RegisterQueryHandler(mux *http.ServeMux) {
-	mux.HandleFunc("/", queryHandler)
-}
+func isValidModify(statement string) (match bool) {
+	// 定义有效语句的正则表达式
+	validStatementRegex := `^(DELETE|UPDATE|INSERT).*`
 
-type QueryResponse struct {
-	Result [][]string `json:"result"`
-	Msg    string     `json:"msg"`
-}
-
-func queryHandler(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("query")
-	fmt.Printf("query: %s, %v\n", query, isValidQuery(query))
-
-	// 检查查询是否有效
-	if isValidQuery(query) {
-		// 处理查询并返回结果
-		result := executeQuery(query)
-		response := QueryResponse{
-			Result: result,
-		}
-		jsonResponse(w, http.StatusOK, response)
-	} else {
-		// 返回查询格式错误的响应
-		response := QueryResponse{
-			Msg: "Error description of the malformed query",
-		}
-		jsonResponse(w, http.StatusBadRequest, response)
+	// 使用正则表达式匹配输入语句
+	match, _ = regexp.MatchString(validStatementRegex, statement)
+	if !match {
+		return
 	}
+
+	// 检查INSERT语句中是否包含所有列
+	if strings.HasPrefix(statement, "INSERT") {
+		values := strings.Split(statement, ",")
+		if len(values) != len(repository.Headers) {
+			match = false
+			return
+		}
+
+		for _, value := range values {
+			if value == "" {
+				match = false
+				return
+			}
+		}
+	}
+
+	// 检查UPDATE语句中列是否有效
+	if strings.HasPrefix(statement, "UPDATE") {
+		values := strings.Split(statement, ",")
+
+		if len(values) < 3 {
+			match = false
+		}
+
+		if _, ok := repository.Header2Index[values[len(values)-2]]; !ok {
+			match = false
+		}
+	}
+
+	return match
 }
 
 func isValidQuery(query string) bool {
 	// 定义正则
 	pattern := ""
-	for i, n := range headers {
+	for i, n := range repository.Headers {
 		if i > 0 {
 			pattern += "|"
 		}

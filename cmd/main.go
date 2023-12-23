@@ -8,12 +8,16 @@ import (
 	"os/signal"
 	"time"
 
-	"zh.com/ms_coding2/server"
+	"zh.com/ms_coding2/internal/handler"
+	"zh.com/ms_coding2/internal/repository"
+	"zh.com/ms_coding2/internal/server"
 )
 
 func main() {
-	server.InitFile()
-	queryServer := server.NewServer(":9527", server.RegisterQueryHandler)
+	repository.InitFile(repository.DefaultFilePath)
+	pth, _ := os.Getwd()
+	fmt.Printf("path: %s\n", pth)
+	queryServer := server.NewServer(":9527", handler.RegisterQueryHandler)
 
 	go func() {
 		err := queryServer.ListenAndServe()
@@ -22,7 +26,7 @@ func main() {
 		}
 	}()
 
-	modifyServer := server.NewServer(":7259", server.RegisterModifyHandler)
+	modifyServer := server.NewServer(":7259", handler.RegisterModifyHandler)
 
 	go func() {
 		err := modifyServer.ListenAndServe()

@@ -1,4 +1,4 @@
-package server
+package repository
 
 import (
 	"encoding/csv"
@@ -11,22 +11,23 @@ import (
 )
 
 var (
-	dataMutex    = &sync.RWMutex{}
-	dataFile     *os.File
-	data         [][]string
-	headers      []string
-	header2Index = make(map[string]int)
+	dataMutex       = &sync.RWMutex{}
+	dataFile        *os.File
+	data            [][]string
+	Headers         []string
+	Header2Index    = make(map[string]int)
+	DefaultFilePath = "pkg/csv/data.csv"
 )
 
 // InitFile create data.csv if not exist
-func InitFile() {
-	_, err := os.Stat("data.csv")
+func InitFile(filePath string) {
+	_, err := os.Stat(filePath)
 	if err == nil {
 		fmt.Println("file already exist")
 
 	} else if os.IsNotExist(err) {
 		// file not exist, create
-		file, err := os.Create("data.csv")
+		file, err := os.Create(filePath)
 		if err != nil {
 			fmt.Println("crate file fail:", err)
 			return
@@ -50,7 +51,7 @@ func InitFile() {
 		fmt.Println("file exist judge fail:", err)
 	}
 
-	dataFile, err = os.OpenFile("data.csv", os.O_RDWR, 0644)
+	dataFile, err = os.OpenFile(filePath, os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,12 +64,12 @@ func InitFile() {
 		log.Fatal(err)
 	}
 
-	headers = data[0]
-	for i, header := range headers {
-		header2Index[header] = i
+	Headers = data[0]
+	for i, header := range Headers {
+		Header2Index[header] = i
 	}
 
-	fmt.Printf("headers: %v\n", headers)
+	fmt.Printf("Headers: %v\n", Headers)
 
 	fmt.Printf("data: %v\n", data)
 
@@ -160,7 +161,7 @@ func rowContains(row []string, colIndex int, term string) bool {
 
 func getUpdateData(values []string) (idx int, newVal string) {
 	idx = -1
-	for i, header := range headers {
+	for i, header := range Headers {
 		if header == values[len(values)-2] {
 			idx = i
 			break
@@ -222,7 +223,7 @@ func getCommand(p string) (command string, values []string) {
 	return
 }
 
-func executeModify(job string) error {
+func ExecuteModify(job string) error {
 	dataMutex.Lock()
 	defer dataMutex.Unlock()
 
@@ -254,14 +255,14 @@ func matchPredicates(row []string, queryData map[int][2]string) bool {
 }
 
 func executeInsert(values []string) error {
-	if len(values) != len(headers) {
+	if len(values) != len(Headers) {
 		fmt.Printf("values: %v, len: %d\n", values, len(values))
 		return fmt.Errorf("invalid INSERT command")
 	}
 
 	// 先查询数据是否已存在
-	queryData := make(map[int][2]string, len(headers))
-	for idx, _ := range headers {
+	queryData := make(map[int][2]string, len(Headers))
+	for idx, _ := range Headers {
 		queryData[idx] = [2]string{"==", values[idx]}
 	}
 	var result [][]string
@@ -371,7 +372,7 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func executeQuery(query string) [][]string {
+func ExecuteQuery(query string) [][]string {
 	dataMutex.RLock()
 	defer dataMutex.RUnlock()
 
@@ -401,7 +402,7 @@ func getQueryData(ps []string) (queryData map[int][2]string) {
 
 		colName := p[:index-1]
 		colValue := p[index+1:]
-		if colIndex, ok := header2Index[colName]; ok {
+		if colIndex, ok := Header2Index[colName]; ok {
 			queryData[colIndex] = [2]string{p[index-1 : index+1], colValue}
 		}
 	}
