@@ -53,6 +53,8 @@ The server follows a monolithic architecture, consisting of the following reason
 2. When I test query API, I find a bug that trim function will delete all the "1" of "[C1==test1]", and get a value of "test". After read the source code of trim, I write a new function and solve this.
 3. I think it's a difficult task to judge request is valid or not. I test many regex, and finally get a good result.
 4. It's also difficult to operate data by column name, I search many doc and test some ways I checked. Although the code accomplish most of the operates, but there are still many problems.
+5. After I make a docker images, I run it with relative path of local directory, that case a local file map to a directory in docker.
+6. Docker has no permission to read local file that map to docker. I search some docs and find the reason is docker has no permission to this directory. I solve it by sharing the directory to docker.
 
 ### Question about task
 1. I find it's uncertain that when and how to create the column names. I directly set the column name as [C1 C2 C3]. And I leave a way to set column, delete data.csv and build a new data.csv which include new column names. Server will read new file and use new column.

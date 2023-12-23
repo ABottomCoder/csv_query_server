@@ -8,10 +8,11 @@ import (
 	"os/signal"
 	"time"
 
+	"zh.com/ms_coding2/internal/utils"
+
 	"zh.com/ms_coding2/internal/handler"
 	"zh.com/ms_coding2/internal/repository"
 	"zh.com/ms_coding2/internal/server"
-	"zh.com/ms_coding2/internal/utils"
 )
 
 func main() {
@@ -19,6 +20,12 @@ func main() {
 	if filePath == "" {
 		filePath = repository.DefaultFilePath
 	}
+	p := os.Getenv("CSV_FILE_PATH")
+	if p != "" {
+		filePath = p
+	}
+
+	fmt.Printf("in main, filePath: %s\n", filePath)
 	repository.InitFile(filePath)
 	pth, _ := os.Getwd()
 	fmt.Printf("path: %s\n", pth)
