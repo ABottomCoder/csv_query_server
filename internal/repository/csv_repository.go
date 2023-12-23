@@ -16,7 +16,7 @@ var (
 	data            [][]string
 	Headers         []string
 	Header2Index    = make(map[string]int)
-	DefaultFilePath = "pkg/csv/data.csv"
+	DefaultFilePath = "data.csv"
 )
 
 // InitFile create data.csv if not exist

@@ -22,7 +22,7 @@ csv_query_server is a server application built with Go that provides two APIs fo
 4. Run the server
 
     ```shell
-   ./csv_query_server
+   ./csv_query_server 'your file path'
 
 ## Usage
 The CSV Query Server provides the following 2 APIs:

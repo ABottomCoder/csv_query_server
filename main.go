@@ -11,10 +11,15 @@ import (
 	"zh.com/ms_coding2/internal/handler"
 	"zh.com/ms_coding2/internal/repository"
 	"zh.com/ms_coding2/internal/server"
+	"zh.com/ms_coding2/internal/utils"
 )
 
 func main() {
-	repository.InitFile(repository.DefaultFilePath)
+	filePath := utils.GetFilePath()
+	if filePath == "" {
+		filePath = repository.DefaultFilePath
+	}
+	repository.InitFile(filePath)
 	pth, _ := os.Getwd()
 	fmt.Printf("path: %s\n", pth)
 	queryServer := server.NewServer(":9527", handler.RegisterQueryHandler)
