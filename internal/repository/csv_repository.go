@@ -73,7 +73,7 @@ func InitFile(filePath string) {
 
 	fmt.Printf("data: %v\n", data)
 
-	readCsv()
+	// readCsv()
 }
 
 // test read csv after create

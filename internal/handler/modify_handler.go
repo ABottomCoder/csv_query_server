@@ -17,7 +17,6 @@ type ModifyResponse struct {
 }
 
 // http://localhost:7259/?job=INSERT%20a1%2Ca2%2Ca3
-// http://localhost:7259/?job=DELETE%20a1
 // http://localhost:7259/?job=DELETE%20a1%2Ca2
 // http://localhost:7259/?job=UPDATE%20ab%2Cac%2CC2%2Caa
 // http://localhost:7259/?job=UPDATE%20a1%2Ca3%2CC3%2Ctt
